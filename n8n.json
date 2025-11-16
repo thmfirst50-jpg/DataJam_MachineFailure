@@ -1,0 +1,343 @@
+{
+  "name": "Machine Failure Discord Notification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "machine-status",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "d9dc0f10-46e3-4908-9900-0002df06710a",
+      "name": "Receive Machine Status",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        848,
+        288
+      ],
+      "webhookId": "8f813fe9-a2ed-4f3e-a318-a19355aa6448"
+    },
+    {
+      "parameters": {
+        "instructions": "you will get a string between 0 and 1 and we need to be in terms of a float query[\"Machine Fail\"]",
+        "codeGeneratedForPrompt": "you will get a string between 0 and 1 and we need to be in terms of a float query[\"Machine Fail\"]",
+        "jsCode": "const items = $input.all();\nconst updatedItems = items.map((item) => {\n  const machineFail = parseFloat(item?.json?.query[\"Machine Fail\"]);\n  item.json.query[\"Machine Fail\"] = machineFail;\n  return item;\n});\nreturn updatedItems;\n"
+      },
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        288
+      ],
+      "id": "884ea71d-49ea-4975-af62-bf227307edb4",
+      "name": "AI Transform"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body['Machine Fail'] }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    },
+                    "id": "6551af95-bce9-48b6-8548-e8a2bea3f4e5"
+                  },
+                  {
+                    "leftValue": "={{ $json.body['Machine Fail'] }}",
+                    "rightValue": 0.7,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lt"
+                    },
+                    "id": "fde954e2-b087-4201-a6b7-cf36c5d2cbc2"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Healthy"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body['Machine Fail'] }}",
+                    "rightValue": 0.7,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    },
+                    "id": "bf879695-0bcb-4b2a-8a0b-32ac6ee09f8f"
+                  },
+                  {
+                    "leftValue": "={{ $json.body['Machine Fail'] }}",
+                    "rightValue": 0.9,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lt"
+                    },
+                    "id": "5742c273-3e3e-4986-bebc-3747202904ef"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Schedule Maintenance"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body['Machine Fail'] }}",
+                    "rightValue": 0.9,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    },
+                    "id": "b8bc0e4a-e58b-4857-90e9-389f1f034f4f"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Machine Failed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0524b124-e002-413a-a934-930a574467f2",
+      "name": "Route by Machine Status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        1280,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=🔧 **Machine Maintenance Alert** 🔧\n\nMachine: {{ $json.body.Name }}\nStatus: Schedule Maintenance ({{ Math.round($json.body[\"Machine Fail\"] * 100) }}%)\nTimestamp: {{ $now.toISO() }}",
+        "options": {}
+      },
+      "id": "fb7a229b-dcf5-4c43-b2ed-1dadc98617e5",
+      "name": "Notify Schedule Maintenance",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        96
+      ],
+      "webhookId": "b5d3166f-e97a-4d4d-b2fd-e832496c1e97",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "jGSsmknFkRkQUiD4",
+          "name": "Discord Webhook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=🚨 **Machine Failure Alert** 🚨\n\nMachine: {{ $json.body.Name }}\nStatus: MACHINE FAILED ({{ Math.round($json.body[\"Machine Fail\"] * 100) }}%)\nTimestamp: {{ $now.toISO() }}",
+        "options": {}
+      },
+      "id": "24d006bd-0111-4dbd-a984-0c2c0c432849",
+      "name": "Notify Machine Failed",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        480
+      ],
+      "webhookId": "7a0f044b-b55d-4c75-bad6-3e9b21e4e21f",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "jGSsmknFkRkQUiD4",
+          "name": "Discord Webhook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "juzerabid5253@gmail.com",
+          "mode": "list",
+          "cachedResultName": "School "
+        },
+        "start": "={{ $now.plus(7, 'days').toISO() }}",
+        "end": "={{ $now.plus(7, 'days').plus(3, 'hours').toISO() }}",
+        "additionalFields": {
+          "description": "=Scheduled maintenance for {{ $json.body.Name }} - Status at {{ Math.round($json.body[\"Machine Fail\"] * 100) }}%",
+          "summary": "=Maintenance: {{ $json.body.Name }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1504,
+        288
+      ],
+      "id": "66bc4bc4-a393-484f-b466-6cd5dffb1731",
+      "name": "Create an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "d9CTTcJx89xU0Vgg",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "juzerabid5253@gmail.com",
+          "mode": "list",
+          "cachedResultName": "School "
+        },
+        "start": "={{ $now.plus(1, \"day\").set({ hour: 9, minute: 0, second: 0 }).toISO() }}",
+        "end": "={{ $now.plus(1, \"day\").set({ hour: 14, minute: 0, second: 0 }).toISO() }}",
+        "additionalFields": {
+          "description": "=CRITICAL: Machine {{ $json.body.Name }} has failed ({{ Math.round($json.body[\"Machine Fail\"] * 100) }}%). Immediate repair required.",
+          "summary": "=URGENT: Emergency Repair - {{ $json.body.Name }}"
+        }
+      },
+      "id": "d2edff07-0acc-4810-9c00-f0a801ee6101",
+      "name": "Schedule Emergency Repair",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1504,
+        672
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "d9CTTcJx89xU0Vgg",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=✅ **Machine Status Alert** ✅\n\nMachine: {{ $json.body.Name }}\nStatus: Healthy ({{ Math.round($json.body[\"Machine Fail\"] * 100) }}%)\nTimestamp: {{ $now.toISO() }}",
+        "options": {}
+      },
+      "id": "91dd2259-1cc8-4be6-8b93-7824b99db97e",
+      "name": "Healthy",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        -96
+      ],
+      "webhookId": "e5a1f855-7a9a-4e50-a8ef-e525bd163f4f",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "jGSsmknFkRkQUiD4",
+          "name": "Discord Webhook account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Receive Machine Status": {
+      "main": [
+        [
+          {
+            "node": "AI Transform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Transform": {
+      "main": [
+        [
+          {
+            "node": "Route by Machine Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Machine Status": {
+      "main": [
+        [
+          {
+            "node": "Healthy",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Schedule Maintenance",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Machine Failed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Schedule Emergency Repair",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "9f60a502-977e-4aa8-88aa-dac1024855c5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ab9effca5f833c83a8617f6ba30d40a09759ec29a11dea65226f540500841a0b"
+  },
+  "id": "FnuEL1YjPDvjkph9",
+  "tags": []
+}
